@@ -1,0 +1,25 @@
+#!/system/bin/sh
+# 延迟执行，避免开机节点未加载
+sleep 30
+
+# 写入函数，简化重复操作
+xs() {
+  [ -f "$2" ] && { chmod 666 "$2"; echo "$1" > "$2"; chmod 444 "$2"; }
+}
+
+# 1. 限制小核（0-3）最大频率 1800000Hz=1.8GHz
+for cpu in 0 1 2 3; do
+  xs 1800000 /sys/devices/system/cpu/cpu$cpu/cpufreq/scaling_max_freq
+done
+
+# 2. 限制大核（4-7）最大频率 2400000Hz=2.4GHz
+for cpu in 4 5 6 7; do
+  xs 2400000 /sys/devices/system/cpu/cpu$cpu/cpufreq/scaling_max_freq
+done
+
+# 3. 限制GPU最大频率 850000000Hz=850MHz（Adreno通用）
+xs 850000000 /sys/class/kgsl/kgsl-3d0/max_gpuclk
+
+# 4. 可选：锁定调速器为powersave（更稳，嫌卡可删掉这2行）
+xs powersave /sys/devices/system/cpu/cpufreq/policy0/scaling_governor
+xs powersave /sys/devices/system/cpu/cpufreq/policy7/scaling_governor
